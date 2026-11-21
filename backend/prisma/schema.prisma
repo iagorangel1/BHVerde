@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  tree
+  planting
+  care
+}
+
+model User {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String         @db.VarChar(60)
+  email        String         @unique @db.VarChar(254)
+  passwordHash String?        @map("password_hash") @db.VarChar(100)
+  googleId     String?        @unique @map("google_id") @db.VarChar(255)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  contributions Contribution[]
+
+  @@map("users")
+}
+
+model Contribution {
+  id          String   @id @default(uuid()) @db.Uuid
+  category    Category
+  location    Unsupported("geometry(Point,4326)")
+  address     String?  @db.VarChar(500)
+  description String?  @db.VarChar(240)
+  photos      Json     @default("[]")
+  contributor String?  @db.VarChar(60)
+  userId      String?  @map("user_id") @db.Uuid
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([category])
+  @@index([createdAt])
+  @@map("contributions")
+}

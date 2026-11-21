@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7faf6">
+  <meta name="description" content="Contribua para mapear a arborização urbana de Belo Horizonte.">
+  <title>BH Verde — Mapa colaborativo</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://api.maptiler.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/style.css?v=collapsible-map-info">
+  <link rel="stylesheet" href="css/profile.css?v=community-explore-feed">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="map-stage" aria-label="Mapa colaborativo de Belo Horizonte">
+      <div id="map" aria-label="Mapa de Belo Horizonte"></div>
+
+      <header class="topbar">
+        <a class="brand" href="#mapa" aria-label="BH Verde, mapa">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span><strong>BH <em>Verde</em></strong><small>Árvores que contam histórias</small></span>
+        </a>
+        <button class="icon-button location-button" id="locate-button" type="button" aria-label="Mostrar minha localização" title="Minha localização">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3m0 14v3M2 12h3m14 0h3M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
+        </button>
+      </header>
+
+      <label class="search-box" for="search-input">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="search-input" type="search" placeholder="Buscar bairro ou contribuição" autocomplete="off">
+        <button id="clear-search" type="button" aria-label="Limpar busca" hidden>×</button>
+      </label>
+
+      <div class="map-tools">
+        <button class="map-tool" id="layers-button" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg>
+        </button>
+      </div>
+
+      <section class="marker-sheet" id="marker-sheet" role="dialog" aria-modal="false" aria-labelledby="marker-sheet-title" hidden>
+        <button class="marker-sheet-close" id="marker-sheet-close" type="button" aria-label="Fechar detalhes">×</button>
+        <span class="marker-sheet-category" id="marker-sheet-category"></span>
+        <h2 id="marker-sheet-title"></h2>
+        <div class="marker-sheet-id" id="marker-sheet-id"></div>
+        <div class="marker-sheet-address" id="marker-sheet-address"></div>
+        <p class="marker-sheet-description" id="marker-sheet-description"></p>
+        <div class="marker-sheet-photos" id="marker-sheet-photos"></div>
+        <div class="marker-sheet-meta" id="marker-sheet-meta"></div>
+        <button class="marker-sheet-delete" id="delete-contribution" type="button" hidden>Excluir minha contribuição</button>
+      </section>
+
+      <aside class="legend-card" id="legend-card" role="button" tabindex="0" aria-label="Ocultar informações do mapa" aria-expanded="true">
+        <div class="legend-heading"><span>Informações</span></div>
+        <div class="legend-item"><span class="legend-icon sprite-tree" role="img" aria-label="Árvore 3D"></span><span>Árvore existente</span><b id="count-tree">0</b></div>
+        <div class="legend-item"><span class="legend-icon sprite-planting" role="img" aria-label="Plantio 3D"></span><span>Plantio</span><b id="count-planting">0</b></div>
+        <div class="legend-item"><span class="legend-icon sprite-care" role="img" aria-label="Poda 3D"></span><span>Poda / remoção</span><b id="count-care">0</b></div>
+      </aside>
+      <button class="legend-restore" id="legend-restore" type="button" aria-label="Mostrar informações do mapa" title="Mostrar informações" aria-expanded="false" aria-controls="legend-card" hidden><span aria-hidden="true">i</span></button>
+
+      <button class="fab" id="add-button" type="button" aria-label="Adicionar contribuição" title="Adicionar contribuição">
+        <img class="fab-icon" src="./assets/adicionar-quadrado.png?v=quadrado-discreto" alt="">
+      </button>
+
+      <section class="map-location-confirm" id="map-location-confirm" aria-live="polite" hidden>
+        <button class="map-location-cancel" id="cancel-address-location" type="button" aria-label="Cancelar mudança de localização" title="Cancelar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
+        </button>
+        <p>Confira o ponto no mapa. Toque no mapa para ajustar.</p>
+        <button id="confirm-address-location" type="button">Confirmar localização</button>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Navegação principal">
+        <span class="nav-highlight" aria-hidden="true"></span>
+        <button class="nav-item active" data-view="mapa" type="button" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span>Mapa</span>
+        </button>
+        <button class="nav-item" data-view="explorar" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.4 5.2-5.2 2.4 2.4-5.2 5.2-2.4Z"/></svg><span>Explorar</span>
+        </button>
+        <button class="nav-item" data-view="perfil" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Perfil</span>
+        </button>
+      </nav>
+      <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors</div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header"><div><p class="eyebrow" id="sheet-eyebrow">BH VERDE · CONTRIBUIÇÃO</p><h1 id="sheet-title">O que você viu?</h1></div></div>
+      <p class="sheet-description" id="sheet-description">Escolha uma categoria para registrar uma observação no mapa.</p>
+
+      <div class="category-grid" id="category-grid" role="group" aria-label="Categoria da contribuição">
+        <button class="category-card selected" type="button" data-category="tree" aria-pressed="true"><span class="category-art art-tree" role="img" aria-label="Ícone 3D de árvore"></span><strong>Árvore existente</strong><small>Mapeie uma árvore da cidade</small></button>
+        <button class="category-card" type="button" data-category="planting" aria-pressed="false"><span class="category-art art-planting" role="img" aria-label="Ícone 3D de plantio"></span><strong>Plantio</strong><small>Indique um novo plantio</small></button>
+        <button class="category-card" type="button" data-category="care" aria-pressed="false"><span class="category-art art-care" role="img" aria-label="Ícone 3D de poda"></span><strong>Poda / Remoção</strong><small>Registre uma situação observada</small></button>
+      </div>
+
+      <form id="contribution-form" novalidate>
+        <label class="field-label" for="description">Descrição</label>
+        <textarea id="description" rows="2" maxlength="240" placeholder="Conte um pouco sobre o que observou"></textarea>
+        <div class="location-section">
+          <div class="location-title"><span class="field-label">Localização</span><span class="location-status" id="location-status">Ainda não selecionada</span></div>
+          <button id="use-location" class="location-picker" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3m0 14v3M2 12h3m14 0h3M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg><span>Usar minha localização atual</span></button>
+          <div class="address-search"><input id="address-input" type="text" maxlength="160" autocomplete="street-address" placeholder="Ou digite rua, número e bairro"><button id="find-address" type="button">Localizar endereço</button></div>
+          <p class="form-hint" id="form-hint">Usamos o GPS do dispositivo. Se preferir, informe um endereço de Belo Horizonte.</p>
+        </div>
+        <div class="photo-section"><label class="field-label" for="tree-photos">Fotos da árvore <span class="field-label-detail">JPG/JPEG · até 3 fotos</span></label><label class="photo-picker" for="tree-photos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Adicionar fotos</span><input id="tree-photos" type="file" accept="image/jpeg,.jpg,.jpeg" multiple></label><div class="photo-previews" id="photo-previews"></div></div>
+        <p class="form-error" id="form-error" role="alert" hidden></p>
+        <button class="submit-button" type="submit"><span>Registrar contribuição</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+        <p class="privacy-note">Contribuição comunitária. Não representa solicitação ou autorização municipal.</p>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <template id="profile-view-template">
+    <section class="profile-panel" aria-labelledby="profile-title">
+      <div class="profile-hero"><span class="profile-avatar" id="profile-avatar">🌱</span><p class="eyebrow">SUA JORNADA VERDE</p><h1 id="profile-title">Seu perfil</h1><p id="profile-intro">Entre ou crie uma conta para identificar suas contribuições.</p></div>
+      <div class="profile-content" id="profile-content"></div>
+    </section>
+  </template>
+  <div class="profile-layer" id="profile-layer" hidden></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="js/config.js?v=same-origin-api"></script>
+  <script src="js/app.js?v=collapsible-map-info"></script>
+</body>
+</html>

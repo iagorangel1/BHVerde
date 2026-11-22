@@ -878,6 +878,7 @@
   bottomNav.style.setProperty('--nav-index', Math.max(0, navItems.findIndex((item) => item.classList.contains('active'))));
   navItems.forEach((button, index) => {
     button.addEventListener('click', () => {
+      const previousButton = navItems.find((item) => item.classList.contains('active'));
       bottomNav.style.setProperty('--nav-index', index);
       const view = button.dataset.view;
       const profileWasOpen = !profileLayer.hidden;
@@ -888,11 +889,21 @@
         if (active) item.setAttribute('aria-current', 'page');
         else item.removeAttribute('aria-current');
       });
+      if (previousButton && previousButton !== button) {
+        previousButton.classList.remove('nav-enter', 'nav-leave');
+        button.classList.remove('nav-enter', 'nav-leave');
+        void button.offsetWidth;
+        previousButton.classList.add('nav-leave');
+        button.classList.add('nav-enter');
+        window.setTimeout(() => {
+          previousButton.classList.remove('nav-leave');
+          button.classList.remove('nav-enter');
+        }, 1400);
+      }
       if (view === 'mapa') {
         if (profileWasOpen) closeProfile();
         currentView = view;
         currentFilter = 'all';
-        showToast('Mapa das contribuições da comunidade.');
       } else if (view === 'explorar') {
         currentView = view;
         currentFilter = 'all';
